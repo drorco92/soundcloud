@@ -4,7 +4,9 @@
 
 
 
-
+#include "SoundCloudSystem.h"
+#include "StreamNode.h"
+#include "library2.h"
 #include "List.h"
 #include "AvlTree.h"
 #include <stdlib.h>
@@ -60,14 +62,14 @@ int main(){
     tree.removeElement(TreeInt(3));
     tree.insertElement(TreeInt(100));
     tree.removeElement(TreeInt(1));
-    tree.printTree();
-    printf("degree 5: %d  |",tree.getDegree(5));
-    printf("degree 2: %d  |",tree.getDegree(2));
-    printf("degree 100: %d  |",tree.getDegree(100));
-    printf("degree 8: %d  |",tree.getDegree(8));
-    printf("degree 6: %d  |",tree.getDegree(6));
-    printf("degree 9: %d  |",tree.getDegree(9));
-    printf("degree 20: %d  |",tree.getDegree(20));
+    //tree.printTree();
+    printf("degree 1: %d  |",(tree.getDataByRank(1))->number);
+    printf("degree 2: %d  |",(tree.getDataByRank(2))->number);
+    printf("degree 3: %d  |",(tree.getDataByRank(3))->number);
+    printf("degree 4: %d  |",(tree.getDataByRank(4))->number);
+    printf("degree 5: %d  |",(tree.getDataByRank(5))->number);
+    printf("degree 6: %d  |",(tree.getDataByRank(6))->number);
+    printf("degree 7: %d  |",(tree.getDataByRank(7))->number);
 
     return 0;
 };

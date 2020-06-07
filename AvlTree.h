@@ -383,7 +383,7 @@ class AvlTree {
         int getHeight(){
             return this->nodeHeight;
         }
-        int nodeGetDegree(const T& t, int degree){
+        /*int nodeGetDegree(const T& t, int degree){
             CompareT compare;
             int result = compare(t, *this->keyT);
             if(result == 0){
@@ -406,7 +406,22 @@ class AvlTree {
             else{
                 return 0;
             }
+        }*/
+        T* getElementByRank(int rank, int result) {
+            if((this->left_son == nullptr && result == 1) || (result == this->left_son->sub_tree_size + 1)){
+                return this->keyT;
+            }
+            if(this->left_son != nullptr && result > this->left_son->sub_tree_size){
+                return this->right_son->getElementByRank(rank, result - this->left_son->sub_tree_size - 1);
+            }
+            else if(this->left_son == nullptr){
+                return this->right_son->keyT;
+            }
+            else{
+                return this->left_son->getElementByRank(rank, result);
+            }
         }
+
         Node* inOrderGetNext() {
             Node *temp = this->right_son;
             Node *temp2 = this->right_son;
@@ -476,6 +491,7 @@ public:
         if(root == nullptr) {
             root = new Node(t, nullptr);
             min = root->getMinNode();
+
             return root->getKey();
         }
         if(root->TreeIsExists(t) == true) throw FAILURE();
@@ -527,11 +543,27 @@ public:
     int getTreeHeight(){
         return this->root->getHeight();
     }
-    int getDegree(const T& t){
+    /*int getDegree(const T& t){
         if(root == nullptr) throw FAILURE();
         Node* temp = root->findNode(t);
         if(temp == nullptr) throw FAILURE();
         return root->nodeGetDegree(t, 0);
+    }*/
+    T* getDataByRank(int rank){
+        if(root == nullptr || rank > root->sub_tree_size) throw FAILURE();
+        if((root->left_son == nullptr && rank == 1) ||
+        (root->left_son != nullptr && root->left_son->sub_tree_size + 1 == rank)) return root->keyT;
+        if(root->left_son == nullptr){
+            return root->right_son->keyT;
+        }
+        else{
+            if(root->left_son->sub_tree_size < rank){
+                return root->right_son->getElementByRank(rank, rank - root->left_son->sub_tree_size - 1);
+            }
+            else{
+                return root->left_son->getElementByRank(rank, rank);
+            }
+        }
     }
     bool isEmpty(){
         if(root == nullptr) return true;
@@ -541,13 +573,13 @@ public:
         delete root->getKey();
         root = nullptr;
     }
-    void printTree(){
+    /*void printTree(){
         for(T* t = startInorder(); t != nullptr; t = inorderGetNext()){
             const T& newt = *t;
             int deg = root->getDegree(newt);
             printf("[Node %d :degree -  %d]", *t, deg);
         }
-    }
+    }*/
 };
 
 
