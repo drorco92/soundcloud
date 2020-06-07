@@ -10,7 +10,7 @@
 #include <string>
 #include <assert.h>
 template<class T, class CompareT>
-class DSAVLTree {
+class AvlTree {
     class OUT_OF_MEM : public std::exception{
         const char* what() const throw(){
             return "Out Of Memory";
@@ -28,9 +28,9 @@ class DSAVLTree {
         Node* left_son;
         Node* father;
         int nodeHeight;
-        int degree;
+        int sub_tree_size;
     public:
-        friend class DSAVLTree;
+        friend class AvlTree;
         Node(const T& t, Node * father) {
             try {
                 this->keyT = t.clone();
@@ -38,7 +38,7 @@ class DSAVLTree {
                 this->left_son = nullptr;
                 this->father = father;
                 this->nodeHeight = 0;
-                this->degree = 0;
+                this->sub_tree_size = 1;
             }
             catch (...) {
                 throw OUT_OF_MEM();
@@ -46,7 +46,9 @@ class DSAVLTree {
         }
 
         ~Node(){
-            delete keyT;
+            if(keyT != nullptr) {
+                delete keyT;
+            }
             keyT = nullptr;
             if(this->left_son!= nullptr) {
                 delete this->left_son;
@@ -126,6 +128,18 @@ class DSAVLTree {
             this->father = temp;
             this->updateHeight(false);
             temp->updateHeight(false);
+            if(temp2 != nullptr){
+                this->sub_tree_size = this->sub_tree_size - temp->sub_tree_size + temp2->sub_tree_size;
+            }
+            else{
+                this->sub_tree_size = this->sub_tree_size - temp->sub_tree_size;
+            }
+            if(this->left_son != nullptr){
+                temp->sub_tree_size += this->left_son->sub_tree_size +1;
+            }
+            else{
+                temp->sub_tree_size++;
+            }
         }
         void LL_Rotate(){
             Node *temp = this->left_son;
@@ -146,6 +160,19 @@ class DSAVLTree {
             this->father = temp;
             this->updateHeight(false);
             temp->updateHeight(false);
+            if(temp2 != nullptr){
+                this->sub_tree_size = this->sub_tree_size - temp->sub_tree_size + temp2->sub_tree_size;
+            }
+            else{
+                this->sub_tree_size = this->sub_tree_size - temp->sub_tree_size;
+            }
+            if(this->right_son != nullptr) {
+                temp->sub_tree_size += this->right_son->sub_tree_size + 1;
+            }
+            else{
+                temp->sub_tree_size++;
+            }
+
         }
         void LR_Rotate(){
             this->left_son->RR_Rotate();
@@ -175,19 +202,33 @@ class DSAVLTree {
                 }
             }
         }
+
+        bool TreeIsExists(const T& t){
+            CompareT compare;
+            int result = compare(t, *this->keyT);
+            if(result == 0) return true;
+            if(result < 0 && this->left_son != nullptr){
+                return this->left_son->TreeIsExists(t);
+            }
+            else if(result > 0 && this->right_son != nullptr){
+                return this->right_son->TreeIsExists(t);
+            }
+            return false;
+        }
         T* insert(const T& t, Node* father1) {
             T* t1 = nullptr;
             CompareT compare;
             int result = compare(t, *(this->keyT));
             if (result < 0) {
+                this->sub_tree_size++;
                 if(this->left_son == nullptr){
                     this->left_son = new Node(t, this);
                     this->balance();
-                    this->degree++;
                     return this->left_son->keyT;
                 }
                 t1 = this->left_son->insert(t, this);
             } else if (result > 0) {
+                this->sub_tree_size++;
                 if(this->right_son == nullptr){
                     this->right_son = new Node(t, this);
                     this->balance();
@@ -207,10 +248,12 @@ class DSAVLTree {
             int result = compare(t, *(this->keyT));
             if (result < 0) {
                 if(left_son== nullptr) throw FAILURE();
+                this->sub_tree_size--;
                 this->left_son->remove(t);
                 this->balance();
             } else if (result > 0) {
                 if(right_son== nullptr) throw FAILURE();
+                this->sub_tree_size--;
                 this->right_son->remove(t);
                 this->balance();
             } else {
@@ -276,6 +319,7 @@ class DSAVLTree {
             return temp;
         }
         Node* removeFatherWithTwoSons(){
+            int size = this->sub_tree_size - 1;
             Node* temp = this->right_son;
             if(temp->left_son == nullptr){
                 temp->father = this->father;
@@ -296,12 +340,14 @@ class DSAVLTree {
                 temp->right_son = this;
                 this->father = temp;
                 this->left_son = nullptr;
+                this->sub_tree_size = temp->sub_tree_size;
+                temp->sub_tree_size = size;
             }
             else{
                 while(temp->left_son != nullptr){
+                    temp->sub_tree_size--;
                     temp->updateHeight(true);
                     temp = temp->left_son;
-
                 }
                 Node* temp2 = temp->right_son;
                 Node* temp3 = temp->father;
@@ -322,6 +368,8 @@ class DSAVLTree {
                 this->right_son = temp2;
                 this->father = temp3;
                 temp3->left_son = this;
+                this->sub_tree_size = temp->sub_tree_size;
+                temp->sub_tree_size = size;
             }
             if(this->right_son == nullptr){
                 this->removeLeaf();
@@ -334,6 +382,30 @@ class DSAVLTree {
         }
         int getHeight(){
             return this->nodeHeight;
+        }
+        int nodeGetDegree(const T& t, int degree){
+            CompareT compare;
+            int result = compare(t, *this->keyT);
+            if(result == 0){
+                if(this->left_son != nullptr){
+                    return degree + this->left_son->sub_tree_size + 1;
+                }
+                else return degree + 1;
+            }
+            else if(result < 0 && this->left_son != nullptr){
+                return this->left_son->nodeGetDegree(t, degree);
+            }
+            else if(result > 0){
+                if(this->right_son != nullptr && this->left_son != nullptr) {
+                    return this->right_son->nodeGetDegree(t, degree+this->left_son->sub_tree_size+1);
+                }
+                else{
+                    return this->right_son->nodeGetDegree(t, degree + 1);
+                }
+            }
+            else{
+                return 0;
+            }
         }
         Node* inOrderGetNext() {
             Node *temp = this->right_son;
@@ -380,64 +452,22 @@ private:
     Node* root;
     Node* min;
     Node* iterator;
-    template <class generate>
-    Node* generateTree(int start, int end, Node* father1, generate g, int max) {
-        Node* node = nullptr;
-        if(start > end || end < start){
-            return nullptr;
-        }
-        try {
-            if ((end - start) == 0) {
-                Node *n0 = new Node(g, start, father1);
-                n0->father = father1;
-                return n0;
-            }
-            int mid = (start + end) / 2;
-            node = new Node(g, mid, father1);
-            node->left_son = generateTree(start, mid - 1, node, g, max);
-            node->right_son = generateTree(mid + 1, end, node, g, max);
-            node->balance();
-            node->father = father1;
-            return node;
-        }
-        catch (...) {
-            if(max == end && start == 0){
-                delete node;
-                return nullptr;
-            }
-            else throw;
-        }
-    }
+
 public:
-    DSAVLTree(){
+    int size() {
+        if (root != nullptr) return root->sub_tree_size;
+        return 0;
+    }
+    AvlTree(){
         root = nullptr;
         min = nullptr;
         iterator = nullptr;
     }
-    template<class generate>
-    DSAVLTree(int n, generate g){
-        if(n == 1){
-            try {
-                root = new Node(g, 0, nullptr);
-                root->father= nullptr;
-            }
-            catch (...){
-                throw OUT_OF_MEM();
-            }
-            min = root;
+
+    ~AvlTree(){
+        if(root != nullptr) {
+            delete root;
         }
-        if(n > 1){
-            try {
-                root = generateTree(0, n-1, nullptr, g, n-1);
-                min = root->getMinNode();
-            }
-            catch(...){
-                delete root;
-            }
-        }
-    }
-    ~DSAVLTree(){
-        delete root;
     }
     T& getMin(){
         return *(this->min->keyT);
@@ -448,6 +478,7 @@ public:
             min = root->getMinNode();
             return root->getKey();
         }
+        if(root->TreeIsExists(t) == true) throw FAILURE();
         T* t1 = root->insert(t, root);
         root = root->updateRoot();
         min = root->getMinNode();
@@ -459,6 +490,7 @@ public:
     }
     void removeElement(const T& keyT) {
         if(root==nullptr) throw FAILURE();
+        if(root->TreeIsExists(keyT) == false) throw FAILURE();
         root = root->remove(keyT);
         if (root == nullptr) {
             min = nullptr;
@@ -495,6 +527,12 @@ public:
     int getTreeHeight(){
         return this->root->getHeight();
     }
+    int getDegree(const T& t){
+        if(root == nullptr) throw FAILURE();
+        Node* temp = root->findNode(t);
+        if(temp == nullptr) throw FAILURE();
+        return root->nodeGetDegree(t, 0);
+    }
     bool isEmpty(){
         if(root == nullptr) return true;
         return false;
@@ -504,9 +542,10 @@ public:
         root = nullptr;
     }
     void printTree(){
-        int i=0;
         for(T* t = startInorder(); t != nullptr; t = inorderGetNext()){
-            printf("[no %d : %d]  '  ", i++, *(t));
+            const T& newt = *t;
+            int deg = root->getDegree(newt);
+            printf("[Node %d :degree -  %d]", *t, deg);
         }
     }
 };

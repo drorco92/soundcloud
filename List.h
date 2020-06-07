@@ -25,13 +25,14 @@ class List{
     };
     class ListNode{
         int key;
-        T* data;
+        T data;
         ListNode* prev;
         ListNode* next;
 
     public:
+        friend class iterator;
         friend class List;
-        ListNode(int keyT, T* d){
+        ListNode(int keyT, T d){
             this->key = keyT;
             this->data = d;
             this->prev = nullptr;
@@ -58,21 +59,17 @@ public:
     }
     ~List(){
         if(head == nullptr){
-            delete this;
+            return;
         }
         ListNode* temp1 = head;
-        ListNode* temp2 = head->next;
-        while(head != nullptr){
-            delete temp1;
-            temp1 = temp2;
-            if(temp2 != nullptr){
-                temp2 = temp2->next;
-            }
+        ListNode* temp2 = nullptr;
+        while(temp1 != nullptr){
+            temp2 = temp1;
+            temp1 = temp1->next;
+            delete temp2;
         }
-        this->iterator = nullptr;
-        delete this;
     }
-    void listInsert(int key_to_insert,T* data){
+    void listInsert(int key_to_insert,T& data){
         if(listIsExists(key_to_insert) != nullptr){
             throw FAILURE();
         }
@@ -89,22 +86,28 @@ public:
             throw OUT_OF_MEM();
         }
     }
-    T* listRemove(int key_to_remove){
+    T listRemove(int key_to_remove){
         if(this->head == nullptr){
             throw FAILURE();
         }
-        ListNode* temp = listIsExists(key_to_remove);
-        if(temp == nullptr) throw FAILURE();
-        else{
-            T* temp_data = temp->data;
-            delete temp;
-            return temp_data;
+        ListNode* temp = head;
+        while(temp != nullptr){
+            if(temp->key == key_to_remove){
+                if(head==temp){
+                    head = temp->next;
+                }
+                T data = temp ->data;
+                delete temp;
+                return data;
+            }
+            temp = temp->next;
         }
+        throw FAILURE();
     }
 
     T* listGetStart(){
         this->iterator = this->head;
-        return this->head->data;
+        return &(this->head->data);
     }
 
     int listGetKey(){
@@ -116,14 +119,14 @@ public:
         if(this->iterator != nullptr){
             this->iterator = this->iterator->next;
             if(iterator == nullptr) return nullptr;
-            return this->iterator->data;
+            return &(this->iterator->data);
         }
         return nullptr;
     }
 
     T* listGetCurrent(){
         if(this->iterator != nullptr){
-            return this->iterator->data;
+            return &(this->iterator->data);
         }
         return nullptr;
     }
@@ -135,16 +138,25 @@ public:
         if(this->head == nullptr) return nullptr;
         ListNode* temp = head;
         while(temp != nullptr){
-            if(temp->key == k) return temp->data;
+            if(temp->key == k) return &(temp->data);
             temp = temp->next;
         }
         return nullptr;
     }
     T& operator[](int k){
-        ListNode* temp = listIsExists(k);
+        T* temp = listIsExists(k);
         if(temp == nullptr) throw FAILURE();
-        return temp->data;
+        return *temp;
+    }
+    void delAll(){
+        ListNode* it = head;
+        while(it!= nullptr){
+            delete it->data;
+            it = it->next;
+        }
     }
 };
+
+
 
 #endif //SOUNDCLOUD_LIST_H
